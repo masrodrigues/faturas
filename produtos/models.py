@@ -9,7 +9,7 @@ class Produto(models.Model):
     revenda = models.DecimalField(max_digits=10, decimal_places=2)
     atacado = models.DecimalField(max_digits=10, decimal_places=2)
     base_12 = models.DecimalField(max_digits=10, decimal_places=2)
-    ipi = models.DecimalField(max_digits=10, decimal_places=2)
+    ##ipi = models.DecimalField(max_digits=10, decimal_places=2)
     apoi01 = models.DecimalField(max_digits=10, decimal_places=2)
     apoio02 = models.DecimalField(max_digits=10, decimal_places=2)
     bruto = models.DecimalField(max_digits=10, decimal_places=2)

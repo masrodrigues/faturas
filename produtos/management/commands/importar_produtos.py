@@ -28,7 +28,7 @@ class Command(BaseCommand):
                 revenda=row['revenda'],
                 atacado=row['atacado'],
                 base_12=row['base_12'],
-                ipi=row['ipi'],
+                ##ipi=row['ipi'],
                 apoi01=row['apoi01'],
                 apoio02=row['apoio02'],
                 bruto=row['bruto'],

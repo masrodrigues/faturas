@@ -10,7 +10,7 @@ body {
 .button-common {
     font-family: 'Arial', sans-serif; /* Define a fonte para Arial */
     font-size: 16px; /* Tamanho da fonte */
-    color: #505050; /* Cor do texto */
+    color: #ffffff; /* Cor do texto */
     background-color: #007bff; /* Cor de fundo */
     border: none; /* Remove a borda */
     padding: 10px 20px; /* Preenchimento ao redor do texto */
@@ -31,7 +31,14 @@ body {
 .search-container {
     background: #f2f2f2;
     padding: 20px;
-    text-align: center;
+    display: flex;
+    justify-content: center; /* Centraliza horizontalmente */
+    align-items: center; /* Centraliza verticalmente */
+}
+
+.search-container .form-flex {
+    display: flex;
+    align-items: center; /* Centraliza os elementos internos verticalmente */
 }
 
 .search-container input[type="text"] {
@@ -44,16 +51,26 @@ body {
 
 .search-container button {
     padding: 10px 20px;
-    background: #ffcc00;
+    background: #2700b3;
     border: none;
     cursor: pointer;
     border-radius: 5px;
+    margin-right: 10px; /* Adiciona margem à direita */
+}
+
+.data-tabela {
+    margin-left: 10px; /* ou o valor desejado */
+    font-size: 16px; /* Tamanho da fonte */
+    color: #333; /* Cor do texto */
+    font-style: italic; /* Estilo da fonte */
+    font-weight: bold;
 }
 
 .table-container {
     margin: 20px;
     overflow-x: auto;
 }
+
 
 table {
     width: 100%;
@@ -65,7 +82,7 @@ table, th, td {
 }
 
 th {
-    background: #ffcc00;
+    background: #2700b3;
     color: #fff;
     padding: 10px;
     font-size: 15px; /* Tamanho da fonte ajustado para o cabeçalho */

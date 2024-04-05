@@ -1,6 +1,6 @@
 import requests
-username = 'quynhorodrigues'
-token = '486434f057ffe198a5978e4115caada9392dc912'
+username = 'SystemMarco'
+token = 'e0d209467696b811f188a5dbadd7cdec323b9183'
 
 response = requests.get(
     'https://www.pythonanywhere.com/api/v0/user/{username}/cpu/'.format(
@@ -13,4 +13,3 @@ if response.status_code == 200:
     print(response.content)
 else:
     print('Got unexpected status code {}: {!r}'.format(response.status_code, response.content))
-      

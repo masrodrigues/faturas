@@ -12,7 +12,10 @@ def pesquisa_produto(request):
         search_query &= (Q(descricao__icontains=word) | Q(codigo_do_produto__icontains=word))
     
     produtos = Produto.objects.filter(search_query)
-    return render(request, 'produtos/pesquisa.html', {'produtos': produtos, 'query': query})
+    
+     # Contando o número de produtos encontrados
+    quantidade_produtos = produtos.count()
+    return render(request, 'produtos/pesquisa.html', {'produtos': produtos, 'query': query, 'quantidade_produtos': quantidade_produtos})
 
 def produto_update(request):
     print("Função produto_update chamada")

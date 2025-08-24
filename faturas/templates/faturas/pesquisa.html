@@ -1,0 +1,335 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Core Faturas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="{% static 'faturas/styles.css' %}">
+
+  <style>
+    :root { --brand: #8c080c; }
+
+    /* Container principal controla a largura de tudo */
+    .content { max-width: 1300px; margin: 0 auto; }
+
+    /* Topbar com dois logos (mesma largura da tabela por estar dentro de .content) */
+    .topbar{
+      margin: 12px 0 0;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .logo{ height:72px; }
+
+    /* Título + versão */
+    .page-title{
+      margin: 6px 0 16px;
+      text-align:center; color: var(--brand);
+    }
+    .page-title .version{
+      font-size:.6em; font-weight:600; color:#666; margin-left:8px; vertical-align:baseline;
+    }
+
+    /* Cabeçalho da tabela (mantendo seu tema em vermelho) */
+    .styled-table thead tr,
+    .styled-table thead th { background:#8c080c !important; color:#ccc !important; }
+
+    /* Tabela centralizada e na largura do container */
+    .table-container { display:flex; justify-content:center; }
+    .styled-table { width:100%; max-width:1300px; }
+
+    /* Filtros – mesma altura de tudo (inclui botões) e centralizados */
+    .search-form{
+      display:flex; flex-wrap:wrap; gap:8px; margin:12px 0;
+      align-items:center; justify-content:center;
+    }
+    .field-like{
+      padding:8px 10px; border:1px solid #ccc; border-radius:6px;
+      height:38px; background:#fff; box-sizing:border-box;
+    }
+    .search-form input[type="text"].field-like,
+    .search-form select.field-like,
+    .search-form input[type="date"].field-like { min-width:180px; }
+
+    /* Badges de contagem */
+    .counts{
+      display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+      margin:8px 0 12px; justify-content:center;
+    }
+    .badge{ padding:4px 10px; border-radius:12px; background:#f1f1f1; font-weight:600; }
+    .total{ margin-right:8px; font-weight:700; color:var(--brand); }
+
+    /* Botões – mesmo tamanho */
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      height:38px; min-width:140px; padding:0 16px; border-radius:6px;
+      font-weight:600; box-sizing:border-box; transition:all .15s ease-in-out;
+    }
+    .btn-primary, .btn-secondary{ border:2px solid var(--brand); }
+    .btn-primary{ background:var(--brand); color:#fff; }
+    .btn-primary:hover{ filter:brightness(0.95); }
+    .btn-secondary{ background:#fff; color:var(--brand); text-decoration:none; }
+    .btn-secondary:hover{ background:var(--brand); color:#fff; }
+
+    /* Modal */
+    .modal{ position:fixed; inset:0; display:none; background:rgba(0,0,0,0.5); z-index:9999;
+            align-items:center; justify-content:center; padding:20px; }
+    .modal-content{ width:min(980px,92vw); background:#fff; border-radius:10px;
+                    box-shadow:0 20px 50px rgba(0,0,0,0.25); overflow:hidden; animation:pop .12s ease-out; }
+    @keyframes pop{ from{transform:scale(.98);opacity:.9} to{transform:scale(1);opacity:1} }
+    .modal-header{ display:flex; align-items:center; justify-content:space-between;
+                   background:#fff; border-bottom:4px solid var(--brand); padding:12px 16px; }
+    .modal-header .brand{ display:flex; align-items:center; gap:12px; }
+    .modal-header .brand img{ height:28px; object-fit:contain; }
+    .modal-header h2{ margin:0; color:var(--brand); font-size:1.25rem; }
+    .close{ cursor:pointer; font-size:28px; line-height:1; color:var(--brand); padding:2px 8px; border-radius:6px; }
+    .close:hover{ background:#f6e8e9; }
+    .modal-body{ padding:18px; }
+    .modal-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 18px; }
+    @media (max-width:640px){
+      .modal-header .brand img{ height:22px; }
+      .modal-header h2{ font-size:1.1rem; }
+      .modal-grid{ grid-template-columns:1fr; }
+    }
+
+    /* Paginação centralizada e estilizada */
+    .pagination{
+      display:flex; justify-content:center; align-items:center;
+      gap:8px; margin:18px 0 24px; flex-wrap:wrap;
+    }
+    .page-link, .page-num{
+      display:inline-flex; align-items:center; justify-content:center;
+      height:36px; min-width:36px; padding:0 12px;
+      border:1px solid #ccc; border-radius:8px; background:#fff; color:#333;
+      text-decoration:none; font-weight:600; transition:all .15s ease-in-out;
+    }
+    .page-link:hover, .page-num:hover{ border-color:var(--brand); color:var(--brand); }
+    .page-num.is-current{ background:var(--brand); color:#fff; border-color:var(--brand); cursor:default; }
+    .page-link.is-disabled{ opacity:.45; pointer-events:none; background:#f5f5f5; }
+    .ellipsis{ padding:0 6px; color:#999; }
+
+    /* Tabela com layout fixo e truncamento */
+.styled-table{ table-layout: fixed; }          /* largura das colunas passa a obedecer o colgroup */
+.styled-table th, .styled-table td{
+  white-space: nowrap;                          /* evita quebra de linha que “empurra” largura */
+  overflow: hidden;
+  text-overflow: ellipsis;                      /* mostra … quando o texto não couber */
+}
+.styled-table td.num{ text-align:right; font--variant-numeric: tabular-nums; } /* números estáveis */
+
+/* (Opcional) mantém a barra vertical sempre visível para evitar “salto” da página */
+body{ overflow-y: scroll; }
+
+/* Centraliza a coluna STATUS (3ª coluna) no header e no body */
+.styled-table th:nth-child(3),
+.styled-table td:nth-child(3) {
+  text-align: center;
+}
+
+/* Centraliza a coluna CYCLE (4ª coluna) no header e no body */
+.styled-table th:nth-child(4),
+.styled-table td:nth-child(4) {
+  text-align: center;
+}
+
+  </style>
+</head>
+<body>
+
+  <div class="content">
+    <!-- LOGOS ALINHADOS À LARGURA DA TABELA -->
+    <div class="topbar">
+      <img src="{% static 'faturas/realize.png' %}" alt="Realize" class="logo">
+      <img src="{% static 'faturas/core.png' %}" alt="CORE CARTÕES" class="logo">
+    </div>
+
+    <!-- Título + versão -->
+    <h1 class="page-title">
+      Pesquisa de Faturas <span class="version">(v1.0.0)</span>
+    </h1>
+
+    <!-- Filtros -->
+    <form method="get" class="search-form">
+      <input type="text" name="q" class="field-like" placeholder="AccountId ou StatementId" value="{{ params.q }}">
+      <select name="status" class="field-like">
+        <option value="">Status (todos)</option>
+        {% for s in statuses %}
+          <option value="{{ s }}" {% if params.status == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+      <input name="closing" type="text" class="field-like" placeholder="CycleClosing"
+             value="{{ params.closing }}" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'">
+      <input name="due" type="text" class="field-like" placeholder="DueAt"
+             value="{{ params.due }}" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'">
+
+      <button type="submit" class="btn btn-primary">Buscar</button>
+      <a href="{% url 'faturas_pesquisa' %}" class="btn btn-secondary">Limpar</a>
+    </form>
+
+    <!-- Total + contagem -->
+    <div class="counts">
+      <span class="total">Total: {{ total_count }}</span>
+      {% for s, qtd in counts_list %}
+        {% if qtd %}<span class="badge">{{ s }}: {{ qtd }}</span>{% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- Tabela -->
+    <div class="table-container">
+      <table class="styled-table">
+        <colgroup>
+    <col style="width:12%">  <!-- Account -->
+    <col style="width:15%">  <!-- Statement -->
+    <col style="width:14%">  <!-- Status -->
+    <col style="width:8%">   <!-- Cycle -->
+    <col style="width:15%">  <!-- CycleClosing -->
+    <col style="width:12%">  <!-- DueAt -->
+    <col style="width:12%">  <!-- Amount Due -->
+    <col style="width:12%">  <!-- Current Balance -->
+  </colgroup>
+        <thead>
+          <tr>
+            <th>Account</th>
+            <th>Statement</th>
+            <th>Status</th>
+            <th>Cycle</th>
+            <th>CycleClosing</th>
+            <th>DueAt</th>
+            <th>Amount Due</th>
+            <th>Current Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for f in page_obj %}
+          <tr class="clickable-row"
+              onclick="abrirModal(this)"
+              data-account="{{ f.account_id }}"
+              data-statement="{{ f.statement_id }}"
+              data-status="{{ f.status }}"
+              data-cycle="{{ f.cycle }}"
+              data-closing="{{ f.cycle_closing_at }}"
+              data-due="{{ f.due_at }}"
+              data-prev="{{ f.previous_balance }}"
+              data-debits="{{ f.debits }}"
+              data-credits="{{ f.credits }}"
+              data-amountdue="{{ f.amount_due }}"
+              data-current="{{ f.current_balance }}"
+              data-paiduntil="{{ f.amount_paid_until_due }}"
+              data-paidafter="{{ f.amount_paid_after_due }}"
+              data-ocuntil="{{ f.other_credits_until_due }}"
+              data-ocafter="{{ f.other_credits_after_due }}"
+              data-delinquency="{{ f.evolve_to_delinquency }}">
+            <td>{{ f.account_id }}</td>
+            <td>{{ f.statement_id }}</td>
+            <td>{{ f.status }}</td>
+            <td>{{ f.cycle }}</td>
+            <td>{{ f.cycle_closing_at }}</td>
+            <td>{{ f.due_at }}</td>
+            <td class="num">R$ {{ f.amount_due }}</td>
+            <td class="num">R$ {{ f.current_balance }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8">Nenhuma fatura encontrada.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginação -->
+    <nav class="pagination" aria-label="Paginação">
+      {% if page_obj.has_previous %}
+        <a class="page-link" href="?page=1&q={{ params.q }}&status={{ params.status }}&closing={{ params.closing }}&due={{ params.due }}">« Primeiro</a>
+        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ params.q }}&status={{ params.status }}&closing={{ params.closing }}&due={{ params.due }}">‹ Anterior</a>
+      {% else %}
+        <span class="page-link is-disabled">« Primeiro</span>
+        <span class="page-link is-disabled">‹ Anterior</span>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+        {% if num == 1 or num == page_obj.paginator.num_pages %}
+          {% if num == page_obj.number %}
+            <span class="page-num is-current">{{ num }}</span>
+          {% else %}
+            <a class="page-num" href="?page={{ num }}&q={{ params.q }}&status={{ params.status }}&closing={{ params.closing }}&due={{ params.due }}">{{ num }}</a>
+          {% endif %}
+        {% elif num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+          {% if num == page_obj.number %}
+            <span class="page-num is-current">{{ num }}</span>
+          {% else %}
+            <a class="page-num" href="?page={{ num }}&q={{ params.q }}&status={{ params.status }}&closing={{ params.closing }}&due={{ params.due }}">{{ num }}</a>
+          {% endif %}
+        {% elif num == 2 or num == page_obj.paginator.num_pages|add:'-1' %}
+          <span class="ellipsis">…</span>
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ params.q }}&status={{ params.status }}&closing={{ params.closing }}&due={{ params.due }}">Próxima ›</a>
+        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&q={{ params.q }}&status={{ params.status }}&closing={{ params.closing }}&due={{ params.due }}">Última »</a>
+      {% else %}
+        <span class="page-link is-disabled">Próxima ›</span>
+        <span class="page-link is-disabled">Última »</span>
+      {% endif %}
+    </nav>
+  </div>
+
+  <!-- Modal -->
+  <div id="detalheModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="brand">
+          <img src="{% static 'faturas/realize.png' %}" alt="Realize">
+          <h2>Detalhes da Fatura</h2>
+          <img src="{% static 'faturas/core.png' %}" alt="CORE CARTÕES">
+        </div>
+        <span class="close" onclick="fecharModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="modal-grid">
+          <div><strong>Account:</strong> <span id="mAccount"></span></div>
+          <div><strong>Statement:</strong> <span id="mStatement"></span></div>
+          <div><strong>Status:</strong> <span id="mStatus"></span></div>
+          <div><strong>Cycle:</strong> <span id="mCycle"></span></div>
+          <div><strong>Closing:</strong> <span id="mClosing"></span></div>
+          <div><strong>Due:</strong> <span id="mDue"></span></div>
+          <div><strong>Previous:</strong> <span id="mPrev"></span></div>
+          <div><strong>Debits:</strong> <span id="mDebits"></span></div>
+          <div><strong>Credits:</strong> <span id="mCredits"></span></div>
+          <div><strong>Amount Due:</strong> <span id="mAmountDue"></span></div>
+          <div><strong>Current Balance:</strong> <span id="mCurrent"></span></div>
+          <div><strong>Paid until Due:</strong> <span id="mPaidUntil"></span></div>
+          <div><strong>Paid after Due:</strong> <span id="mPaidAfter"></span></div>
+          <div><strong>Other Credits (until):</strong> <span id="mOCUntil"></span></div>
+          <div><strong>Other Credits (after):</strong> <span id="mOCAfter"></span></div>
+          <div><strong>Evolve to Delinquency:</strong> <span id="mDelinq"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function abrirModal(tr){
+      const g = x => tr.dataset[x] ?? "";
+      mAccount.textContent   = g('account');
+      mStatement.textContent = g('statement');
+      mStatus.textContent    = g('status');
+      mCycle.textContent     = g('cycle');
+      mClosing.textContent   = g('closing');
+      mDue.textContent       = g('due');
+      mPrev.textContent      = g('prev');
+      mDebits.textContent    = g('debits');
+      mCredits.textContent   = g('credits');
+      mAmountDue.textContent = g('amountdue');
+      mCurrent.textContent   = g('current');
+      mPaidUntil.textContent = g('paiduntil');
+      mPaidAfter.textContent = g('paidafter');
+      mOCUntil.textContent   = g('ocuntil');
+      mOCAfter.textContent   = g('ocafter');
+      mDelinq.textContent    = g('delinquency');
+      detalheModal.style.display = 'flex';
+    }
+    function fecharModal(){ detalheModal.style.display = 'none'; }
+    window.addEventListener('click', e => { if (e.target === detalheModal) fecharModal(); });
+  </script>
+</body>
+</html>

@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -74,12 +75,62 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DB_ENGINE = os.getenv("DB_ENGINE", "django.db.backends.sqlite3")
+
+if DB_ENGINE == "django.db.backends.sqlite3":
+    sqlite_name = os.getenv("DB_NAME")
+    if sqlite_name:
+        sqlite_path = Path(sqlite_name)
+        if not sqlite_path.is_absolute():
+            sqlite_path = BASE_DIR / sqlite_path
+    else:
+        sqlite_path = BASE_DIR / "db.sqlite3"
+
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': sqlite_path,
+        }
     }
-}
+else:
+    db_name = os.getenv("DB_NAME")
+    db_user = os.getenv("DB_USER")
+    db_password = os.getenv("DB_PASSWORD")
+    db_host = os.getenv("DB_HOST", "127.0.0.1")
+    db_port = os.getenv("DB_PORT", "3306")
+
+    missing = [env for env, value in (("DB_NAME", db_name), ("DB_USER", db_user), ("DB_PASSWORD", db_password)) if not value]
+    if missing:
+        raise RuntimeError(
+            "Variáveis obrigatórias ausentes para configuração do banco de dados: " + ", ".join(missing)
+        )
+
+    DATABASES = {
+        'default': {
+            'ENGINE': DB_ENGINE,
+            'NAME': db_name,
+            'USER': db_user,
+            'PASSWORD': db_password,
+            'HOST': db_host,
+            'PORT': db_port,
+        }
+    }
+
+    # Opções extras comuns para MySQL
+    if DB_ENGINE == "django.db.backends.mysql":
+        options = {
+            'charset': os.getenv("DB_CHARSET", "utf8mb4"),
+        }
+
+        ssl_ca = os.getenv("DB_SSL_CA")
+        if ssl_ca:
+            options['ssl'] = {'ca': ssl_ca}
+
+        init_command = os.getenv("DB_INIT_COMMAND")
+        if init_command:
+            options['init_command'] = init_command
+
+        DATABASES['default']['OPTIONS'] = options
 
 
 # Password validation
